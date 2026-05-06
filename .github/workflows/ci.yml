@@ -1,0 +1,172 @@
+name: CI - Validación Rápida
+
+on:
+  pull_request:
+    branches: [main, develop]
+  push:
+    branches: [main, develop]
+
+# Los jobs corren en PARALELO → tiempo total ~30s
+jobs:
+
+  # ─────────────────────────────────────────────
+  # JOB 1: Archivos que NO deben estar en el repo
+  # ─────────────────────────────────────────────
+  archivos-prohibidos:
+    name: 🚫 Archivos Prohibidos
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Verificar __pycache__
+        run: |
+          COUNT=$(find . -type d -name "__pycache__" -not -path "./.git/*" | wc -l)
+          if [ "$COUNT" -gt 0 ]; then
+            echo "❌ ERROR: Se encontraron $COUNT carpeta(s) __pycache__ en el repo"
+            find . -type d -name "__pycache__" -not -path "./.git/*"
+            echo ""
+            echo "Solución: git rm -r --cached '**/__pycache__/' y añade __pycache__/ a .gitignore"
+            exit 1
+          fi
+          echo "✅ Sin __pycache__"
+
+      - name: Verificar node_modules
+        run: |
+          COUNT=$(find . -type d -name "node_modules" -not -path "./.git/*" | wc -l)
+          if [ "$COUNT" -gt 0 ]; then
+            echo "❌ ERROR: node_modules está en el repo"
+            echo "Solución: git rm -r --cached frontend/node_modules/ y añade node_modules/ a .gitignore"
+            exit 1
+          fi
+          echo "✅ Sin node_modules"
+
+      - name: Verificar .ipynb
+        run: |
+          COUNT=$(find . -name "*.ipynb" -not -path "./.git/*" | wc -l)
+          if [ "$COUNT" -gt 0 ]; then
+            echo "❌ ERROR: Se encontraron $COUNT notebook(s) .ipynb en el repo"
+            find . -name "*.ipynb" -not -path "./.git/*"
+            echo ""
+            echo "Solución: git rm --cached <archivo>.ipynb y añade *.ipynb a .gitignore"
+            exit 1
+          fi
+          echo "✅ Sin notebooks .ipynb"
+
+  # ─────────────────────────────────────────────
+  # JOB 2: Sintaxis Python (sin instalar nada)
+  # ─────────────────────────────────────────────
+  python-sintaxis:
+    name: 🐍 Sintaxis Python
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+
+      - name: Compilar todos los .py
+        run: |
+          ERRORS=0
+          FILES=0
+          while IFS= read -r f; do
+            FILES=$((FILES + 1))
+            if ! python -m py_compile "$f" 2>&1; then
+              echo "❌ Error de sintaxis en: $f"
+              ERRORS=$((ERRORS + 1))
+            fi
+          done < <(find . -name "*.py" \
+            -not -path "./.git/*" \
+            -not -path "*/__pycache__/*")
+
+          echo "Archivos revisados: $FILES"
+          if [ "$ERRORS" -gt 0 ]; then
+            echo "❌ $ERRORS archivo(s) con errores de sintaxis"
+            exit 1
+          fi
+          echo "✅ Sintaxis Python válida en todos los archivos"
+
+  # ─────────────────────────────────────────────
+  # JOB 3: Sintaxis JS/JSX (solo @babel/parser)
+  # ─────────────────────────────────────────────
+  js-sintaxis:
+    name: ⚛️ Sintaxis JS/JSX
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      - name: Validar package.json
+        run: |
+          node -e "
+            JSON.parse(require('fs').readFileSync('package.json', 'utf8'));
+            console.log('✅ package.json válido');
+          "
+
+      - name: Instalar parser JSX (solo 500KB)
+        run: npm install --save-dev @babel/parser --silent --no-fund
+
+      - name: Verificar sintaxis de todos los .js/.jsx
+        run: |
+          node -e "
+          const parser = require('@babel/parser');
+          const fs = require('fs');
+          const path = require('path');
+          let errors = 0;
+          let ok = 0;
+
+          function check(dir) {
+            for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+              const full = path.join(dir, entry.name);
+              if (entry.isDirectory()) { check(full); continue; }
+              if (!entry.name.match(/\.(js|jsx)$/)) continue;
+              try {
+                parser.parse(fs.readFileSync(full, 'utf8'), {
+                  sourceType: 'module',
+                  plugins: ['jsx']
+                });
+                ok++;
+              } catch (e) {
+                console.error('❌ ERROR en', full + ':', e.message);
+                errors++;
+              }
+            }
+          }
+
+          check('src');
+          console.log('Archivos revisados: ' + (ok + errors));
+          if (errors > 0) process.exit(1);
+          console.log('✅ Sintaxis JS/JSX válida en todos los archivos');
+          "
+
+  # ─────────────────────────────────────────────
+  # JOB 4: Lint Dockerfiles (hadolint)
+  # ─────────────────────────────────────────────
+  docker-lint:
+    name: 🐳 Lint Dockerfiles
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Lint backend/Dockerfile
+        uses: hadolint/hadolint-action@v3.1.0
+        with:
+          dockerfile: backend/Dockerfile
+          failure-threshold: error
+
+      - name: Lint frontend/Dockerfile
+        uses: hadolint/hadolint-action@v3.1.0
+        with:
+          dockerfile: frontend/Dockerfile
+          failure-threshold: error
+
+      - name: Validar sintaxis docker-compose.yml
+        run: |
+          docker compose -f docker-compose.yml config --quiet
+          echo "✅ docker-compose.yml válido"

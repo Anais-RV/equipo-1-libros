@@ -1,0 +1,32 @@
+# Dockerfile mínimo para CI/CD
+# Usado por health-check.yml — NO para producción
+#
+# Por qué existe este archivo:
+#   requirements.txt incluye torch + transformers (~5GB, ~5min de build)
+#   Para CI solo necesitamos levantar la API con mock data
+#   Este Dockerfile instala solo fastapi + uvicorn → build en ~20s
+#
+# Uso:
+#   docker build -f backend/Dockerfile.ci -t backend-ci .
+#   docker run -p 8000:8000 backend-ci
+
+FROM python:3.13-slim
+
+WORKDIR /app
+
+# Solo dependencias mínimas de API (sin ML, sin BERT, sin torch)
+RUN pip install --no-cache-dir \
+    fastapi==0.115.12 \
+    uvicorn==0.34.0 \
+    pydantic==2.11.4
+
+# Copiar servidor stub y datos mock
+COPY backend/tests/fixtures/ci_server.py .
+COPY backend/tests/fixtures/mock_books.json .
+
+EXPOSE 8000
+
+HEALTHCHECK --interval=5s --timeout=5s --retries=10 \
+    CMD python -c "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"
+
+CMD ["uvicorn", "ci_server:app", "--host", "0.0.0.0", "--port", "8000"]

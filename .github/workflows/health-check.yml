@@ -1,0 +1,80 @@
+name: Health Check - Backend con Mock Data
+
+on:
+  pull_request:
+    branches: [main]
+  workflow_dispatch:  # También se puede lanzar manualmente
+
+jobs:
+  health-check:
+    name: 🏥 Backend Health Check
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # Build imagen mínima: solo fastapi + uvicorn, SIN torch/BERT
+      # Tiempo estimado: 20-30s (vs 5+ min con requirements.txt completo)
+      - name: Build imagen CI (sin BERT/torch)
+        run: |
+          echo "Construyendo imagen CI mínima..."
+          docker build -f backend/Dockerfile.ci -t backend-ci . --quiet
+          echo "✅ Imagen construida"
+
+      # Arrancar backend con mock data
+      - name: Levantar backend CI
+        run: |
+          docker compose -f docker-compose.ci.yml up -d backend
+          echo "✅ Contenedor arrancado"
+
+      # Esperar hasta 2 minutos a que responda
+      - name: Esperar que el backend esté listo
+        run: |
+          echo "Esperando backend en http://localhost:8000/health ..."
+          for i in $(seq 1 24); do
+            if curl -sf http://localhost:8000/health > /dev/null 2>&1; then
+              echo "✅ Backend responde (intento $i)"
+              exit 0
+            fi
+            echo "  Intento $i/24 — esperando 5s..."
+            sleep 5
+          done
+          echo "❌ Backend no respondió en 2 minutos"
+          docker compose -f docker-compose.ci.yml logs backend
+          exit 1
+
+      # Verificar endpoint principal /recommend
+      - name: Verificar POST /recommend
+        run: |
+          RESPONSE=$(curl -sf -X POST http://localhost:8000/recommend \
+            -H "Content-Type: application/json" \
+            -d '{"title": "The Great Gatsby", "author": "F. Scott Fitzgerald"}')
+
+          echo "Respuesta recibida:"
+          echo "$RESPONSE" | python3 -m json.tool
+
+          echo "$RESPONSE" | python3 -c "
+          import sys, json
+          data = json.load(sys.stdin)
+          assert 'recommendations' in data, 'Falta clave recommendations'
+          assert len(data['recommendations']) > 0, 'recommendations está vacío'
+          print('✅ /recommend responde correctamente con', len(data['recommendations']), 'libro(s)')
+          "
+
+      # Verificar /health devuelve status ok
+      - name: Verificar GET /health
+        run: |
+          RESPONSE=$(curl -sf http://localhost:8000/health)
+          echo "$RESPONSE" | python3 -c "
+          import sys, json
+          data = json.load(sys.stdin)
+          assert data.get('status') == 'ok', f'Status inesperado: {data}'
+          print('✅ /health OK:', data)
+          "
+
+      # Siempre limpiar, aunque falle
+      - name: Teardown
+        if: always()
+        run: |
+          docker compose -f docker-compose.ci.yml down --remove-orphans
+          echo "✅ Contenedores detenidos"
