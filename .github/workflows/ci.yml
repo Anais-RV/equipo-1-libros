@@ -1,4 +1,4 @@
-name: CI - Validación Rápida
+name: ci
 
 on:
   pull_request:
