@@ -1,0 +1,48 @@
+# ============================================================================
+# REQUIREMENTS.TXT - Proyecto Final Data Analyst
+# Sistema de Recomendación de Libros
+# ============================================================================
+# Python 3.13
+# Instalar: pip install -r requirements.txt
+# ============================================================================
+
+# Data Processing & Análisis
+pandas==2.2.3
+numpy==2.2.5
+scipy==1.15.2
+
+# Backend API
+fastapi==0.115.12
+uvicorn==0.34.0
+pydantic==2.11.4
+python-multipart==0.0.20
+
+# Visualización
+matplotlib==3.10.1
+seaborn==0.13.2
+plotly==6.0.1
+
+# Machine Learning & NLP
+scikit-learn==1.6.1
+transformers==4.51.3
+torch==2.7.0
+textblob==0.19.0
+
+# Web Framework (Dashboard)
+streamlit==1.45.0
+
+# Utilidades
+python-dotenv==1.1.0
+ipython==9.1.0
+jupyter==1.1.1
+ipykernel==6.29.5
+
+# ============================================================================
+# NOTAS DE INSTALACIÓN:
+# 1. Crear entorno virtual: python -m venv .venv
+# 2. Activar:
+#    - Windows: .venv\Scripts\activate
+#    - Mac/Linux: source .venv/bin/activate
+# 3. Instalar: pip install -r requirements.txt
+# 4. Nota: torch puede tardar (es grande). Paciencia.
+# ============================================================================

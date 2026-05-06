@@ -1,0 +1,128 @@
+@import '../../styles/variables.css';
+
+/* ResultsDisplay - Estructura BEM */
+
+.results {
+  animation: fadeInUp 0.6s ease-out;
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Encabezado */
+
+.results__header {
+  margin-bottom: var(--spacing-2xl);
+  text-align: center;
+}
+
+.results__title {
+  font-family: var(--font-primary);
+  font-size: var(--font-size-h2);
+  color: var(--color-primary-dark);
+  margin-bottom: var(--spacing-md);
+  line-height: 1.4;
+}
+
+.results__book {
+  display: block;
+  font-size: var(--font-size-h1);
+  color: var(--color-secondary);
+  font-style: italic;
+  margin-top: var(--spacing-sm);
+}
+
+.results__summary {
+  font-size: var(--font-size-body);
+  color: var(--color-text-secondary);
+  font-style: italic;
+  margin: var(--spacing-lg) auto 0;
+  max-width: 600px;
+}
+
+/* Grid de recomendaciones */
+
+.results__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: var(--spacing-lg);
+  margin-bottom: var(--spacing-2xl);
+}
+
+/* Footer */
+
+.results__footer {
+  background: linear-gradient(
+    135deg,
+    rgba(212, 175, 116, 0.08),
+    rgba(193, 123, 75, 0.08)
+  );
+  border: 1px solid var(--color-border);
+  border-radius: var(--border-radius-lg);
+  padding: var(--spacing-lg) var(--spacing-xl);
+  text-align: center;
+}
+
+.results__footer__text {
+  font-size: var(--font-size-small);
+  color: var(--color-text-secondary);
+  margin: 0;
+  font-style: italic;
+}
+
+/* Responsive */
+
+@media (max-width: 1024px) {
+  .results__grid {
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  }
+}
+
+@media (max-width: 768px) {
+  .results__header {
+    margin-bottom: var(--spacing-xl);
+  }
+
+  .results__title {
+    font-size: var(--font-size-h3);
+  }
+
+  .results__book {
+    font-size: var(--font-size-h2);
+  }
+
+  .results__grid {
+    grid-template-columns: 1fr;
+    gap: var(--spacing-md);
+  }
+
+  .results__footer {
+    padding: var(--spacing-md) var(--spacing-lg);
+  }
+}
+
+@media (max-width: 640px) {
+  .results__title {
+    font-size: var(--font-size-h3);
+  }
+
+  .results__book {
+    font-size: var(--font-size-h2);
+  }
+
+  .results__summary {
+    font-size: var(--font-size-small);
+  }
+
+  .results__footer__text {
+    font-size: var(--font-size-xs);
+  }
+}

@@ -1,0 +1,33 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache/
+
+# Virtual environments
+.venv/
+venv/
+env/
+ENV/
+
+# Node
+frontend/node_modules/
+npm-debug.log*
+
+# Local caches and outputs
+cache/
+outputs/
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Large local datasets
+data/*.csv
+archive/*.db
+!data/.gitkeep
+!archive/.gitkeep
+!data/00_VALIDAR_DATASET.py
