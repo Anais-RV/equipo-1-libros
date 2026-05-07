@@ -4,6 +4,59 @@
 
 ---
 
+## 🚀 PRIMER PASO: Instalar Docker Desktop
+
+**Si no lo tienen aún, comiencen por acá. No pueden hacer nada sin esto.**
+
+### Windows (Lo más probable)
+
+1. **Descargen Docker Desktop:** https://www.docker.com/products/docker-desktop
+2. **Ejecuten el instalador** (.exe que bajaron)
+3. **Acepten TODOS los permisos** que pide (importante)
+4. **Reinicien la máquina** (sí, obligatorio. No lo salten.)
+5. **Abran Docker Desktop** (icono en aplicaciones o bandeja de tareas)
+   - Busquen la ballena azul 🐳
+   - Esperen a que diga "Docker Desktop is running"
+   - Puede tardar 1-2 minutos la primera vez
+
+**Verificar que funciona:**
+```bash
+# Abran PowerShell y corran:
+docker --version
+# Deberían ver algo como: Docker version 24.0.0, build xxxxx
+```
+
+Si ven un error "Cannot connect to Docker daemon":
+- Abran Docker Desktop (icono en taskbar, esquina inferior derecha)
+- Esperen 30 segundos
+- Reintenten el comando
+
+### macOS
+
+1. **Descargen Docker Desktop:** https://www.docker.com/products/docker-desktop (versión Mac Intel o Apple Silicon según su chip)
+2. **Ejecuten el .dmg** y arrastren Docker a Applications
+3. **Abran Docker** desde Applications
+4. **Acepten el password** si pide (es necesario para VM)
+
+```bash
+# Verificar en terminal:
+docker --version
+```
+
+### Linux (Si alguien usa)
+
+```bash
+# Ubuntu/Debian:
+sudo apt-get update
+sudo apt-get install docker.io docker-compose
+
+# Iniciar servicio:
+sudo systemctl start docker
+sudo systemctl enable docker
+```
+
+---
+
 ## ¿Qué es Docker?
 
 Docker es **una caja de seguridad virtual** donde vive todo lo que necesita el proyecto:
@@ -282,59 +335,4 @@ Si todo ✅ = a trabajar.
 **Lo que NO necesitan hacer:**
 
 - ❌ Entender cómo funciona Docker por dentro (todavía)
-- ❌ Instalar nada en su máquina manualmente
-- ❌ "Optimizar" Docker (déjenlo en paz)
-- ❌ Paniquear cuando ven errores raros en la terminal (ignórenlos)
-
-**Lo más importante de todo:**
-
-No renuncien en Semana 2 cuando Docker + BERT les consuma RAM y todo sea lento.
-
-Eso es normal. Yo lloré. Ustedes también van a llorar. Pero funciona.
-
----
-
-## ¿Preguntas?
-
-Discord → #equipo-1
-
-Cualquier cosa que no entienda o no funcione: **pregunten sin miedo**.
-
-No hay preguntas estúpidas. Docker confunde a todos al principio.
-
-Yo creé este proyecto y sigo confundido por Docker. Pero funciona.
-
----
-
-## Analogía final (la verdadera)
-
-Docker es como una **máquina virtual portable** que vive en su máquina.
-
-- **Adentro:** Todo funciona exacto (Python 3.13, Node 18, BERT, todo perfecto)
-- **Afuera:** Su compu está intacta (sin BERT, sin 47GB de dependencias)
-- **El código:** Vive en su máquina + Git (no desaparece)
-- **Docker:** Es solo el "execute button"
-
-**Flujo de verdad:**
-
-```
-Ustedes escriben código en VSCode
-           ↓
-Docker lo ejecuta en la caja
-           ↓
-Funciona en su navegador (localhost:3000)
-           ↓
-Lo guardan en Git
-           ↓
-Cierran Docker (Ctrl+C, docker-compose down)
-           ↓
-El código sigue en su máquina, intacto
-           ↓
-Mañana: repetir
-```
-
-Fin. 🚀
-
----
-
-*Del unicornio que se piró. Si algún día trabajan con Docker en un equipo real, van a entender por qué estoy aquí recomendándolo. Docker no es opcional. Es supervivencia.*
+- ❌ Instalar nada en su máqui
