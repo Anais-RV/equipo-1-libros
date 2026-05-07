@@ -335,4 +335,59 @@ Si todo ✅ = a trabajar.
 **Lo que NO necesitan hacer:**
 
 - ❌ Entender cómo funciona Docker por dentro (todavía)
-- ❌ Instalar nada en su máqui
+- ❌ Instalar nada en su máquina manualmente
+- ❌ "Optimizar" Docker (déjenlo en paz)
+- ❌ Paniquear cuando ven errores raros en la terminal (ignórenlos)
+
+**Lo más importante de todo:**
+
+No renuncien en Semana 2 cuando Docker + BERT les consuma RAM y todo sea lento.
+
+Eso es normal. Yo lloré. Ustedes también van a llorar. Pero funciona.
+
+---
+
+## ¿Preguntas?
+
+Discord → #equipo-1
+
+Cualquier cosa que no entienda o no funcione: **pregunten sin miedo**.
+
+No hay preguntas estúpidas. Docker confunde a todos al principio.
+
+Yo creé este proyecto y sigo confundido por Docker. Pero funciona.
+
+---
+
+## Analogía final (la verdadera)
+
+Docker es como una **máquina virtual portable** que vive en su máquina.
+
+- **Adentro:** Todo funciona exacto (Python 3.13, Node 18, BERT, todo perfecto)
+- **Afuera:** Su compu está intacta (sin BERT, sin 47GB de dependencias)
+- **El código:** Vive en su máquina + Git (no desaparece)
+- **Docker:** Es solo el "execute button"
+
+**Flujo de verdad:**
+
+```
+Ustedes escriben código en VSCode
+           ↓
+Docker lo ejecuta en la caja
+           ↓
+Funciona en su navegador (localhost:3000)
+           ↓
+Lo guardan en Git
+           ↓
+Cierran Docker (Ctrl+C, docker-compose down)
+           ↓
+El código sigue en su máquina, intacto
+           ↓
+Mañana: repetir
+```
+
+Fin. 🚀
+
+---
+
+*Del unicornio que se piró. Si algún día trabajan con Docker en un equipo real, van a entender por qué estoy aquí recomendándolo. Docker no es opcional. Es supervivencia.*
