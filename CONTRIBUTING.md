@@ -8,11 +8,11 @@ Bienvenidos. No es fácil.
 
 Lean esto en este orden:
 1. **README.md** - Qué es el proyecto
-2. **BRIEF_PARA_ESTUDIANTES.md** - Warnings realistas (léanlo en serio)
-3. **docs/ARQUITECTURA.md** - Cómo encaja todo
-4. **backend/analysis/README.md** - Qué implementar
+2. **docs/BRIEF_PARA_ESTUDIANTES.md** - Primeros pasos y troubleshooting (léanlo en serio)
+3. **docs/ARQUITECTURA.md** - Cómo encaja todo técnicamente
+4. **backend/analysis/README.md** - Qué implementar exactamente
 
-Tardarán 30 minutos. Merecen la pena.
+Tardarán 45 minutos. Merecen la pena.
 
 ## Setup
 
