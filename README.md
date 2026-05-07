@@ -151,8 +151,9 @@ docker-compose up
 
 ## Documentación
 
-- `docs/ARQUITECTURA.md` — Flujo de datos y qué implementar
-- `docs/NOTAS_DEL_UNICORNIO.md` — Brief, warnings, timeline
+- `docs/BRIEF_PARA_ESTUDIANTES.md` — Primeros pasos, troubleshooting, ayuda práctica
+- `docs/ARQUITECTURA.md` — Flujo de datos técnico y qué implementar
+- `docs/NOTAS_DEL_UNICORNIO.md` — Warnings y timeline realista
 
 ---
 
