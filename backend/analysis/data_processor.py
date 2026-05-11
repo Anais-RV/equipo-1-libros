@@ -258,8 +258,9 @@ def preprocess_reviews(
     df['review_content'] = df['review_content'].apply(clean_text) # Limpiar texto (con funcion clean_text)
     df = df[df['review_content'].apply(validate_review)] # Verificar longitud minima (con funcion validate_review)
     df = df.drop_duplicates(subset=['review_content']) # Remover duplicados
-    
-    return reviews_clean
+    df["review_rating"] = df["review_rating"].str.extract(r'(\d+)').astype(float)
+
+    return df
 
 
 def get_book_stats(books_df: pd.DataFrame, reviews_df: pd.DataFrame) -> dict:
