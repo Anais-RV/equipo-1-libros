@@ -201,11 +201,12 @@ def preprocess_reviews(
     """
     # TODO: Implementar limpieza
     # Sugerencia:
-    # 1. df = reviews_df[reviews_df['review_text'].notna()].copy()
-    # 2. df['review_text'] = df['review_text'].apply(clean_text)
-    # 3. df = df[df['review_text'].apply(validate_review)]
-    # 4. df = df.drop_duplicates(subset=['review_text'])
-    pass
+    df = reviews_df[reviews_df['review_content'].notna()].copy() # Remover filas con review_text nulo
+    df['review_content'] = df['review_content'].apply(clean_text) # Limpiar texto (con funcion clean_text)
+    df = df[df['review_content'].apply(validate_review)] # Verificar longitud minima (con funcion validate_review)
+    df = df.drop_duplicates(subset=['review_content']) # Remover duplicados
+    
+    return reviews_clean
 
 
 def get_book_stats(books_df: pd.DataFrame, reviews_df: pd.DataFrame) -> dict:
