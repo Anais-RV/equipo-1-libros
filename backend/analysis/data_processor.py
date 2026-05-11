@@ -97,7 +97,7 @@ def clean_text(text: str) -> str:
 
  # Traducir ANTES de limpiar (el traductor necesita el texto lo más natural posible)
     if translate:
-    text = translate_to_english(text)
+        text = translate_to_english(text)
     
 
     # Convertir a minúsculas
