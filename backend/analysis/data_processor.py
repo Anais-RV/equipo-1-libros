@@ -14,7 +14,7 @@ La realidad de las reviews:
 - Nulls, vacías, caracteres especiales
 - Spam, publicidad, reviews trolles
 
-Tu misión:
+Tu misión:d
 1. Cargar dataset
 2. Remover basura
 3. Dejar reviews usables para BERT
@@ -26,6 +26,8 @@ Estimación realista:
 
 Si pierdes el 50%+, algo está muy mal.
 """
+
+# from fnmatch import translate
 
 import pandas as pd
 import sqlite3
@@ -45,6 +47,26 @@ REVIEWS_DB = os.path.join(ARCHIVE_PATH, 'book_reviews.db')
 # ============================================
 # FUNCIONES HELPER
 # ============================================
+
+# revisar para ver si esta en requirementes
+'''from deep_translator import GoogleTranslator
+from langdetect import detect  # pip install langdetect
+
+def translate_to_english(text: str) -> str:
+    """
+    Traduce texto al inglés solo si no está ya en inglés.
+    Detecta el idioma primero para no traducir lo que no hace falta.
+    """
+    try:
+        lang = detect(text)
+        if lang == 'en':
+            return text  # Ya está en inglés, no hacemos nada
+
+        translated = GoogleTranslator(source='auto', target='en').translate(text)
+        return translated if translated else text
+
+    except Exception:
+        return text  # Si falla, devolvemos el original sin romper el flujo'''
 
 def clean_text(text: str) -> str:
     """
@@ -73,18 +95,24 @@ def clean_text(text: str) -> str:
     if not isinstance(text, str):
         return ""
 
+ # Traducir ANTES de limpiar (el traductor necesita el texto lo más natural posible)
+    #if translate:
+    #    text = translate_to_english(text)
+    
+
     # Convertir a minúsculas
     text = text.lower()
 
     # Remover URLs
     text = re.sub(r'http\S+|www\S+', '', text)
 
-    # Remover emojis
-    text = re.sub(r'[^\w\s]', ' ', text)
+    # Remover emojis y caracteres especiales (dejamos letras, números, puntuación básica)
+    text = re.sub(r'[^a-z0-9áéíóúñ\s.,!?]', ' ', text)
 
     # Remover espacios múltiples
     text = re.sub(r'\s+', ' ', text).strip()
 
+    
     return text
 
 
@@ -116,6 +144,12 @@ def validate_review(review_text: str, min_length: int = 10) -> bool:
     if len(review_text.strip()) < min_length:
         return False
 
+    #  DETECCIÓN DE BOTS / SPAM BÁSICA: Si la review tiene muchas palabras repetidas, es sospechosa
+    words = review_text.split()
+    if len(words) > 0:
+        unique_ratio = len(set(words)) / len(words)
+        if unique_ratio < 0.3 and len(words) > 5:  # Si menos del 30% de las palabras son únicas
+            return False
     # Más validaciones pueden ir aquí
     return True
 
