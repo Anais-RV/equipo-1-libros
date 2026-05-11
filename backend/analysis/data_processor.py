@@ -166,6 +166,12 @@ def load_dataset() -> Tuple[pd.DataFrame, pd.DataFrame]:
     # conn = sqlite3.connect(REVIEWS_DB)
     # reviews = pd.read_sql("SELECT * FROM reviews", conn)
     
+    if not os.path.exists(BOOKS_CSV):
+        raise FileNotFoundError(f"No se encontró el archivo de libros: {BOOKS_CSV}")
+    
+    if not os.path.exists(REVIEWS_DB):
+        raise FileNotFoundError(f"No se encontró la base de datos de reviews: {REVIEWS_DB}")
+
     books_df = pd.read_csv(BOOKS_CSV)
     conn = sqlite3.connect(REVIEWS_DB)          # abre la conexión a la BD
     reviews_df = pd.read_sql("SELECT * FROM book_reviews", conn)  # lee la tabla
