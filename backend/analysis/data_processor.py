@@ -49,7 +49,7 @@ REVIEWS_DB = os.path.join(ARCHIVE_PATH, 'book_reviews.db')
 # ============================================
 
 # revisar para ver si esta en requirementes
-'''from deep_translator import GoogleTranslator
+from deep_translator import GoogleTranslator
 from langdetect import detect  # pip install langdetect
 
 def translate_to_english(text: str) -> str:
@@ -66,7 +66,7 @@ def translate_to_english(text: str) -> str:
         return translated if translated else text
 
     except Exception:
-        return text  # Si falla, devolvemos el original sin romper el flujo'''
+        return text  # Si falla, devolvemos el original sin romper el flujo
 
 def clean_text(text: str) -> str:
     """
@@ -96,8 +96,8 @@ def clean_text(text: str) -> str:
         return ""
 
  # Traducir ANTES de limpiar (el traductor necesita el texto lo más natural posible)
-    #if translate:
-    #    text = translate_to_english(text)
+    if translate:
+        text = translate_to_english(text)
     
 
     # Convertir a minúsculas
