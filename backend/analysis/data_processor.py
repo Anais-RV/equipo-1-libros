@@ -14,7 +14,7 @@ La realidad de las reviews:
 - Nulls, vacías, caracteres especiales
 - Spam, publicidad, reviews trolles
 
-Tu misión:
+Tu misión:d
 1. Cargar dataset
 2. Remover basura
 3. Dejar reviews usables para BERT
@@ -26,6 +26,8 @@ Estimación realista:
 
 Si pierdes el 50%+, algo está muy mal.
 """
+
+# from fnmatch import translate
 
 import pandas as pd
 import sqlite3
@@ -45,6 +47,26 @@ REVIEWS_DB = os.path.join(ARCHIVE_PATH, 'book_reviews.db')
 # ============================================
 # FUNCIONES HELPER
 # ============================================
+
+# revisar para ver si esta en requirementes
+'''from deep_translator import GoogleTranslator
+from langdetect import detect  # pip install langdetect
+
+def translate_to_english(text: str) -> str:
+    """
+    Traduce texto al inglés solo si no está ya en inglés.
+    Detecta el idioma primero para no traducir lo que no hace falta.
+    """
+    try:
+        lang = detect(text)
+        if lang == 'en':
+            return text  # Ya está en inglés, no hacemos nada
+
+        translated = GoogleTranslator(source='auto', target='en').translate(text)
+        return translated if translated else text
+
+    except Exception:
+        return text  # Si falla, devolvemos el original sin romper el flujo'''
 
 def clean_text(text: str) -> str:
     """
@@ -73,18 +95,24 @@ def clean_text(text: str) -> str:
     if not isinstance(text, str):
         return ""
 
+ # Traducir ANTES de limpiar (el traductor necesita el texto lo más natural posible)
+    #if translate:
+    #    text = translate_to_english(text)
+    
+
     # Convertir a minúsculas
     text = text.lower()
 
     # Remover URLs
     text = re.sub(r'http\S+|www\S+', '', text)
 
-    # Remover emojis
-    text = re.sub(r'[^\w\s]', ' ', text)
+    # Remover emojis y caracteres especiales (dejamos letras, números, puntuación básica)
+    text = re.sub(r'[^a-z0-9áéíóúñ\s.,!?]', ' ', text)
 
     # Remover espacios múltiples
     text = re.sub(r'\s+', ' ', text).strip()
 
+    
     return text
 
 
@@ -116,6 +144,12 @@ def validate_review(review_text: str, min_length: int = 10) -> bool:
     if len(review_text.strip()) < min_length:
         return False
 
+    #  DETECCIÓN DE BOTS / SPAM BÁSICA: Si la review tiene muchas palabras repetidas, es sospechosa
+    words = review_text.split()
+    if len(words) > 0:
+        unique_ratio = len(set(words)) / len(words)
+        if unique_ratio < 0.3 and len(words) > 5:  # Si menos del 30% de las palabras son únicas
+            return False
     # Más validaciones pueden ir aquí
     return True
 
@@ -165,7 +199,26 @@ def load_dataset() -> Tuple[pd.DataFrame, pd.DataFrame]:
     # Opción B: SQLite
     # conn = sqlite3.connect(REVIEWS_DB)
     # reviews = pd.read_sql("SELECT * FROM reviews", conn)
-    pass
+    
+    if not os.path.exists(BOOKS_CSV):
+        raise FileNotFoundError(f"No se encontró el archivo de libros: {BOOKS_CSV}")
+    
+    if not os.path.exists(REVIEWS_DB):
+        raise FileNotFoundError(f"No se encontró la base de datos de reviews: {REVIEWS_DB}")
+
+    books_df = pd.read_csv(BOOKS_CSV)
+    conn = sqlite3.connect(REVIEWS_DB)          # abre la conexión a la BD
+    reviews_df = pd.read_sql("SELECT * FROM book_reviews", conn)  # lee la tabla
+    conn.close()                                # siempre cerrar la conexión
+    
+    print(f"Libros cargados: {books_df.head()}, \nReviews cargadas: {reviews_df.head()}")      
+    print("Libros info:")
+    books_df.info()
+    print("\nReviews info:")
+    reviews_df.info()
+    print(f"\nLibros describe: {books_df.describe()}, \nReviews describe: {reviews_df.describe()}") 
+    
+    return books_df, reviews_df
 
 
 def preprocess_reviews(
@@ -213,28 +266,56 @@ def get_book_stats(books_df: pd.DataFrame, reviews_df: pd.DataFrame) -> dict:
     """
     Calcula estadísticas del dataset.
 
+    Args:
+        books_df: DataFrame de libros cargado desde Book_Details.csv
+        reviews_df: DataFrame de reviews cargado desde book_reviews.db
+
     Returns:
         Dict con:
-        - total_books
-        - total_reviews
-        - avg_reviews_per_book
-        - date_range
-        - rating_distribution
-        - etc.
-
-    Uso:
-        Entender características del dataset
-        Verificar que la carga fue correcta
+        - total_books: número total de libros
+        - total_reviews: número total de reviews
+        - avg_reviews_per_book: media de reviews por libro
+        - books_with_no_reviews: libros sin ninguna review
+        - null_reviews: reviews con texto nulo
+        - date_range: rango de fechas de las reviews (si existe la columna)
+        - rating_distribution: conteo de reviews por puntuación
+        - avg_rating: puntuación media de las reviews
     """
-    # TODO: Implementar estadísticas
-    # Sugerencia:
-    # return {
-    #     "total_books": len(books_df),
-    #     "total_reviews": len(reviews_df),
-    #     "avg_reviews_per_book": len(reviews_df) / len(books_df),
-    #     ...
-    # }
-    pass
+    avg_reviews = len(reviews_df) / len(books_df) if len(books_df) > 0 else 0
+
+    # Columnas que pueden variar según el dataset de Kaggle
+    review_text_col = next((c for c in ['review_text', 'review'] if c in reviews_df.columns), None)
+    rating_col = next((c for c in ['review_rating', 'rating'] if c in reviews_df.columns), None)
+    date_col = next((c for c in ['review_date', 'date'] if c in reviews_df.columns), None)
+    book_id_col = next((c for c in ['book_id', 'id'] if c in reviews_df.columns), None)
+
+    stats = {
+        "total_books": len(books_df),
+        "total_reviews": len(reviews_df),
+        "avg_reviews_per_book": round(avg_reviews, 2),
+        "books_with_no_reviews": (
+            len(books_df) - reviews_df[book_id_col].nunique()
+            if book_id_col else "N/A (columna book_id no encontrada)"
+        ),
+        "null_reviews": (
+            int(reviews_df[review_text_col].isna().sum())
+            if review_text_col else "N/A (columna review_text no encontrada)"
+        ),
+    }
+
+    if date_col:
+        stats["date_range"] = {
+            "min": str(reviews_df[date_col].min()),
+            "max": str(reviews_df[date_col].max()),
+        }
+
+    if rating_col:
+        stats["rating_distribution"] = (
+            reviews_df[rating_col].value_counts().sort_index().to_dict()
+        )
+        stats["avg_rating"] = round(reviews_df[rating_col].mean(), 2)
+
+    return stats
 
 
 # ============================================
