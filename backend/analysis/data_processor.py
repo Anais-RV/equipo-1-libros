@@ -212,28 +212,56 @@ def get_book_stats(books_df: pd.DataFrame, reviews_df: pd.DataFrame) -> dict:
     """
     Calcula estadísticas del dataset.
 
+    Args:
+        books_df: DataFrame de libros cargado desde Book_Details.csv
+        reviews_df: DataFrame de reviews cargado desde book_reviews.db
+
     Returns:
         Dict con:
-        - total_books
-        - total_reviews
-        - avg_reviews_per_book
-        - date_range
-        - rating_distribution
-        - etc.
-
-    Uso:
-        Entender características del dataset
-        Verificar que la carga fue correcta
+        - total_books: número total de libros
+        - total_reviews: número total de reviews
+        - avg_reviews_per_book: media de reviews por libro
+        - books_with_no_reviews: libros sin ninguna review
+        - null_reviews: reviews con texto nulo
+        - date_range: rango de fechas de las reviews (si existe la columna)
+        - rating_distribution: conteo de reviews por puntuación
+        - avg_rating: puntuación media de las reviews
     """
-    # TODO: Implementar estadísticas
-    # Sugerencia:
-    # return {
-    #     "total_books": len(books_df),
-    #     "total_reviews": len(reviews_df),
-    #     "avg_reviews_per_book": len(reviews_df) / len(books_df),
-    #     ...
-    # }
-    pass
+    avg_reviews = len(reviews_df) / len(books_df) if len(books_df) > 0 else 0
+
+    # Columnas que pueden variar según el dataset de Kaggle
+    review_text_col = next((c for c in ['review_text', 'review'] if c in reviews_df.columns), None)
+    rating_col = next((c for c in ['review_rating', 'rating'] if c in reviews_df.columns), None)
+    date_col = next((c for c in ['review_date', 'date'] if c in reviews_df.columns), None)
+    book_id_col = next((c for c in ['book_id', 'id'] if c in reviews_df.columns), None)
+
+    stats = {
+        "total_books": len(books_df),
+        "total_reviews": len(reviews_df),
+        "avg_reviews_per_book": round(avg_reviews, 2),
+        "books_with_no_reviews": (
+            len(books_df) - reviews_df[book_id_col].nunique()
+            if book_id_col else "N/A (columna book_id no encontrada)"
+        ),
+        "null_reviews": (
+            int(reviews_df[review_text_col].isna().sum())
+            if review_text_col else "N/A (columna review_text no encontrada)"
+        ),
+    }
+
+    if date_col:
+        stats["date_range"] = {
+            "min": str(reviews_df[date_col].min()),
+            "max": str(reviews_df[date_col].max()),
+        }
+
+    if rating_col:
+        stats["rating_distribution"] = (
+            reviews_df[rating_col].value_counts().sort_index().to_dict()
+        )
+        stats["avg_rating"] = round(reviews_df[rating_col].mean(), 2)
+
+    return stats
 
 
 # ============================================
