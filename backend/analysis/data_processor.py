@@ -27,7 +27,6 @@ Estimación realista:
 Si pierdes el 50%+, algo está muy mal.
 """
 
-# from fnmatch import translate
 
 import pandas as pd
 import sqlite3
@@ -50,9 +49,10 @@ REVIEWS_DB = os.path.join(ARCHIVE_PATH, 'book_reviews.db')
 
 # revisar para ver si esta en requirementes
 from deep_translator import GoogleTranslator
-from langdetect import detect  # pip install langdetect
+# from langdetect import detect 
+from fnmatch import translate
 
-def translate_to_english(text: str) -> str:
+'''def translate_to_english(text: str) -> str:
     """
     Traduce texto al inglés solo si no está ya en inglés.
     Detecta el idioma primero para no traducir lo que no hace falta.
@@ -66,8 +66,10 @@ def translate_to_english(text: str) -> str:
         return translated if translated else text
 
     except Exception:
-        return text  # Si falla, devolvemos el original sin romper el flujo
+        return text  # Si falla, devolvemos el original sin romper el flujo'''
 
+
+    
 def clean_text(text: str) -> str:
     """
     Limpia texto de review para procesamiento.
@@ -96,8 +98,8 @@ def clean_text(text: str) -> str:
         return ""
 
  # Traducir ANTES de limpiar (el traductor necesita el texto lo más natural posible)
-    if translate:
-        text = translate_to_english(text)
+    # if translate:
+        # text = translate_to_english(text)
     
 
     # Convertir a minúsculas
@@ -221,6 +223,16 @@ def load_dataset() -> Tuple[pd.DataFrame, pd.DataFrame]:
     return books_df, reviews_df
 
 
+from langdetect import detect, DetectorFactory
+
+DetectorFactory.seed = 0  # resultados consistentes
+
+def detectar_idioma(texto: str) -> str:
+    try:
+        return detect(texto)
+    except:
+        return "unknown"
+
 def preprocess_reviews(
     reviews_df: pd.DataFrame,
     min_review_length: int = 10
@@ -252,6 +264,8 @@ def preprocess_reviews(
         2. Documentar cambios
         3. Considerar impacto en análisis
     """
+    
+
     # TODO: Implementar limpieza
     # Sugerencia:
     df = reviews_df[reviews_df['review_content'].notna()].copy() # Remover filas con review_text nulo
@@ -259,6 +273,13 @@ def preprocess_reviews(
     df = df[df['review_content'].apply(validate_review)] # Verificar longitud minima (con funcion validate_review)
     df = df.drop_duplicates(subset=['review_content']) # Remover duplicados
     df["review_rating"] = df["review_rating"].str.extract(r'(\d+)').astype(float)
+
+    # 👇 AQUÍ: después de limpiar, antes de validar
+    df["idioma"] = df["review_content"].apply(detectar_idioma)
+    print("Distribución de idiomas:\n", df["idioma"].value_counts())
+
+    # Filtrar solo inglés (opcional pero recomendado para BERT)
+    df = df[df["idioma"] == "en"]
 
     return df
 
@@ -340,3 +361,5 @@ if __name__ == "__main__":
     print("\nEstadísticas...")
     stats = get_book_stats(books, reviews_clean)
     print(stats)
+
+
