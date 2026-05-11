@@ -165,7 +165,26 @@ def load_dataset() -> Tuple[pd.DataFrame, pd.DataFrame]:
     # Opción B: SQLite
     # conn = sqlite3.connect(REVIEWS_DB)
     # reviews = pd.read_sql("SELECT * FROM reviews", conn)
-    pass
+    
+    if not os.path.exists(BOOKS_CSV):
+        raise FileNotFoundError(f"No se encontró el archivo de libros: {BOOKS_CSV}")
+    
+    if not os.path.exists(REVIEWS_DB):
+        raise FileNotFoundError(f"No se encontró la base de datos de reviews: {REVIEWS_DB}")
+
+    books_df = pd.read_csv(BOOKS_CSV)
+    conn = sqlite3.connect(REVIEWS_DB)          # abre la conexión a la BD
+    reviews_df = pd.read_sql("SELECT * FROM book_reviews", conn)  # lee la tabla
+    conn.close()                                # siempre cerrar la conexión
+    
+    print(f"Libros cargados: {books_df.head()}, \nReviews cargadas: {reviews_df.head()}")      
+    print("Libros info:")
+    books_df.info()
+    print("\nReviews info:")
+    reviews_df.info()
+    print(f"\nLibros describe: {books_df.describe()}, \nReviews describe: {reviews_df.describe()}") 
+    
+    return books_df, reviews_df
 
 
 def preprocess_reviews(
@@ -201,11 +220,11 @@ def preprocess_reviews(
     """
     # TODO: Implementar limpieza
     # Sugerencia:
-    # 1. df = reviews_df[reviews_df['review_text'].notna()].copy()
-    # 2. df['review_text'] = df['review_text'].apply(clean_text)
-    # 3. df = df[df['review_text'].apply(validate_review)]
-    # 4. df = df.drop_duplicates(subset=['review_text'])
-    pass
+    df = reviews_df[reviews_df['review_content'].notna()].copy()
+    df['review_content'] = df['review_content'].apply(clean_text)
+    df = df[df['review_content'].apply(validate_review)]
+    df = df.drop_duplicates(subset=['review_content'])
+    return df
 
 
 def get_book_stats(books_df: pd.DataFrame, reviews_df: pd.DataFrame) -> dict:
@@ -233,8 +252,13 @@ def get_book_stats(books_df: pd.DataFrame, reviews_df: pd.DataFrame) -> dict:
     #     "avg_reviews_per_book": len(reviews_df) / len(books_df),
     #     ...
     # }
-    pass
-
+    
+    return {
+        "total_books": len(books_df),
+        "total_reviews": len(reviews_df),
+        "avg_reviews_per_book": len(reviews_df) / len(books_df) if len(books_df) > 0 else 0,
+        
+        }
 
 # ============================================
 # DEBUGGING / TESTING
