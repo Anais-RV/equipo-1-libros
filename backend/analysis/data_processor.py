@@ -178,7 +178,10 @@ def load_dataset() -> Tuple[pd.DataFrame, pd.DataFrame]:
     conn.close()                                # siempre cerrar la conexión
     
     print(f"Libros cargados: {books_df.head()}, \nReviews cargadas: {reviews_df.head()}")      
-    print(f"\nLibros info: {books_df.info()}, \nReviews info: {reviews_df.info()}")    
+    print("Libros info:")
+    books_df.info()
+    print("\nReviews info:")
+    reviews_df.info()
     print(f"\nLibros describe: {books_df.describe()}, \nReviews describe: {reviews_df.describe()}") 
     
     return books_df, reviews_df
