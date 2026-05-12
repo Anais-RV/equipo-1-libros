@@ -14,7 +14,7 @@ La realidad de las reviews:
 - Nulls, vacías, caracteres especiales
 - Spam, publicidad, reviews trolles
 
-Tu misión:d
+Tu misión:
 1. Cargar dataset
 2. Remover basura
 3. Dejar reviews usables para BERT
@@ -27,12 +27,13 @@ Estimación realista:
 Si pierdes el 50%+, algo está muy mal.
 """
 
-
 import pandas as pd
 import sqlite3
 import os
 from typing import Tuple
 import re
+from langdetect import detect, DetectorFactory
+DetectorFactory.seed = 0  # resultados consistentes
 
 # ============================================
 # CONFIGURACIÓN
@@ -47,8 +48,6 @@ REVIEWS_DB = os.path.join(ARCHIVE_PATH, 'book_reviews.db')
 # FUNCIONES HELPER
 # ============================================
 
-
-    
 def clean_text(text: str) -> str:
     """
     Limpia texto de review para procesamiento.
@@ -76,11 +75,6 @@ def clean_text(text: str) -> str:
     if not isinstance(text, str):
         return ""
 
- # Traducir ANTES de limpiar (el traductor necesita el texto lo más natural posible)
-    # if translate:
-        # text = translate_to_english(text)
-    
-
     # Convertir a minúsculas
     text = text.lower()
 
@@ -93,10 +87,7 @@ def clean_text(text: str) -> str:
     # Remover espacios múltiples
     text = re.sub(r'\s+', ' ', text).strip()
 
-   
-    
     return text
-
 
 
 def validate_review(review_text: str, min_length: int = 10) -> bool:
@@ -133,7 +124,7 @@ def validate_review(review_text: str, min_length: int = 10) -> bool:
         unique_ratio = len(set(words)) / len(words)
         if unique_ratio < 0.3 and len(words) > 5:  # Si menos del 30% de las palabras son únicas
             return False
-    # Más validaciones pueden ir aquí
+    
     return True
 
 
@@ -174,7 +165,6 @@ def load_dataset() -> Tuple[pd.DataFrame, pd.DataFrame]:
         3. Identificar columnas relevantes
         4. Detectar valores nulos
     """
-
     
     if not os.path.exists(BOOKS_CSV):
         raise FileNotFoundError(f"No se encontró el archivo de libros: {BOOKS_CSV}")
@@ -183,31 +173,21 @@ def load_dataset() -> Tuple[pd.DataFrame, pd.DataFrame]:
         raise FileNotFoundError(f"No se encontró la base de datos de reviews: {REVIEWS_DB}")
 
     books_df = pd.read_csv(BOOKS_CSV)
-    conn = sqlite3.connect(REVIEWS_DB)          # abre la conexión a la BD
-    reviews_df = pd.read_sql("SELECT * FROM book_reviews", conn)  # lee la tabla
-    conn.close()                                # siempre cerrar la conexión
+    conn = sqlite3.connect(REVIEWS_DB)                              # abre la conexión a la BD
+    reviews_df = pd.read_sql("SELECT * FROM book_reviews", conn)    # lee la tabla
+    conn.close()                                                    # siempre cerrar la conexión
     
     books_df["publication_year"] = (books_df["publication_info"].astype(str).str.extract(r"((?:19|20)\d{2})")[0].astype("Int64"))
 
-    print(f"Libros cargados: {books_df.head()}, \nReviews cargadas: {reviews_df.head()}")      
-    print("Libros info:")
-    books_df.info()
-    print("\nReviews info:")
-    reviews_df.info()
-    print(f"\nLibros describe: {books_df.describe()}, \nReviews describe: {reviews_df.describe()}") 
-    
     return books_df, reviews_df
 
-
-from langdetect import detect, DetectorFactory
-
-DetectorFactory.seed = 0  # resultados consistentes
 
 def detectar_idioma(texto: str) -> str:
     try:
         return detect(texto)
     except:
         return "unknown"
+
 
 def detectar_idioma_combinado(titulo: str, descripcion: str) -> str:
     """
@@ -216,7 +196,8 @@ def detectar_idioma_combinado(titulo: str, descripcion: str) -> str:
     texto_combinado = f"{titulo} {descripcion}".strip()
     return detectar_idioma(texto_combinado)
 
-def preprocess_book_details(books_df: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame]:
+
+def preprocess_book_details(books_df: pd.DataFrame) -> Tuple[pd.DataFrame, pd.DataFrame]: 
     """
     Detecta el idioma combinando book_title y book_description.
 
@@ -224,12 +205,11 @@ def preprocess_book_details(books_df: pd.DataFrame) -> tuple[pd.DataFrame, pd.Da
         
     books_df: DataFrame original con columnas de idioma añadidas (sin eliminar filas)
     english_books_df: Nueva tabla solo con libros en inglés"""
-    # Detectar idioma por columna individual
 
+    # Detectar idioma por columna individual
     books_df["language_from_title"] = books_df["book_title"].apply(detectar_idioma)
     books_df["language_from_description"] = books_df["book_description"].apply(detectar_idioma),
     
-
     # Detectar idioma combinando ambas columnas (más preciso)
     books_df["language"] = books_df.apply(
         lambda row: detectar_idioma_combinado(
@@ -247,11 +227,6 @@ def preprocess_book_details(books_df: pd.DataFrame) -> tuple[pd.DataFrame, pd.Da
 
     return books_df, english_books_df
 
-books_df,english_books_df = preprocess_book_details(books_df)
-
-print(f"Total libros: {len(books_df)}")
-print(f"Libros en inglés: {len(english_books_df)}")
-print(f"Libros filtrados: {len(books_df) - len(english_books_df)}")
 
 def preprocess_reviews(
     reviews_df: pd.DataFrame,
@@ -285,9 +260,6 @@ def preprocess_reviews(
         3. Considerar impacto en análisis
     """
     
-
-    # TODO: Implementar limpieza
-    # Sugerencia:
     df = reviews_df[reviews_df['review_content'].notna()].copy() # Remover filas con review_text nulo
     df['review_content'] = df['review_content'].apply(clean_text) # Limpiar texto (con funcion clean_text)
     df = df[df['review_content'].apply(validate_review)] # Verificar longitud minima (con funcion validate_review)
@@ -374,9 +346,21 @@ if __name__ == "__main__":
     print("\nBooks columns:", books.columns.tolist())
     print("\nReviews columns:", reviews.columns.tolist())
     
+    print(f"Libros cargados: {books.head()}, \nReviews cargadas: {reviews.head()}")      
+    print("Libros info:")
+    books.info()
+    print("\nReviews info:")
+    reviews.info()
+    print(f"\nLibros describe: {books.describe()}, \nReviews describe: {reviews.describe()}") 
+    
+
     print("\nLimpiando books...")
-    books_clean = preprocess_book_details(books)
+    books_clean, english_books = preprocess_book_details(books)
     print(f"Books despues de limpiar: {books_clean.shape}")
+
+    print(f"Total libros: {len(books)}")
+    print(f"Libros en inglés: {len(english_books)}")
+    print(f"Libros filtrados: {len(books_clean) - len(english_books)}")
     
     print("\nLimpiando reviews...")
     reviews_clean = preprocess_reviews(reviews)
@@ -386,10 +370,15 @@ if __name__ == "__main__":
     stats = get_book_stats(books_clean, reviews_clean)
     print(stats)
 
-    OUTPUT_PATH = os.path.join(DATA_PATH, 'reviews_clean.csv', "books_clean.csv")
-    reviews_clean.to_csv(OUTPUT_PATH, index=False, encoding='utf-8-sig')
-    books_clean.to_csv(OUTPUT_PATH, index=False, encoding='utf-8-sig')
 
-    print(f"\n CSV guardado en: {OUTPUT_PATH}")
-    print(f"   Filas: {len(reviews_clean)}")
-    print(f"   Columnas: {reviews_clean.columns.tolist()}")
+    print("\nGuardando CSVs...")
+    REVIEWS_OUTPUT = os.path.join(DATA_PATH, 'reviews_clean.csv')
+    BOOKS_OUTPUT = os.path.join(DATA_PATH, 'books_clean.csv')
+
+    reviews_clean.to_csv(REVIEWS_OUTPUT, index=False, encoding='utf-8-sig')
+    books_clean.to_csv(BOOKS_OUTPUT, index=False, encoding='utf-8-sig')
+
+    print(f"\n CSVs guardados en: {DATA_PATH}")
+    print(f"   reviews_clean.csv — Filas: {len(reviews_clean)} | Columnas: {reviews_clean.columns.tolist()}")
+    print(f"   books_clean.csv   — Filas: {len(books_clean)} | Columnas: {books_clean.columns.tolist()}")
+
