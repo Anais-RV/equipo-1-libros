@@ -20,10 +20,12 @@ emotion_classifier = pipeline(
 )
 print("✅ Modelo cargado")
 '''
+print("Cargando modelo BERT... (solo la primera vez)")
 emotion_classifier = pipeline(
     "zero-shot-classification",
     model="facebook/bart-large-mnli"
 )
+print("✅ Modelo cargado")
 
 # ============================================
 # FUNCIONES HELPER
