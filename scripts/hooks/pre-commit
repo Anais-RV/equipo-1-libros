@@ -1,0 +1,92 @@
+#!/usr/bin/env bash
+# =============================================================
+# Pre-commit hook — Validación antes de git commit
+#
+# INSTALACIÓN (ejecutar una vez tras clonar):
+#   Linux/Mac/WSL/Git Bash:
+#     cp scripts/hooks/pre-commit .git/hooks/pre-commit
+#     chmod +x .git/hooks/pre-commit
+#
+#   Windows (PowerShell):
+#     Copy-Item scripts\hooks\pre-commit .git\hooks\pre-commit
+#
+# Para saltarse el hook (solo emergencias):
+#   git commit --no-verify -m "mensaje"
+# =============================================================
+
+echo "🔍 Pre-commit: validando cambios staged..."
+
+STAGED=$(git diff --cached --name-only 2>/dev/null)
+ERRORS=0
+
+# ─────────────────────────────────────────────
+# 1. Archivos prohibidos en staged
+# ─────────────────────────────────────────────
+
+if echo "$STAGED" | grep -q "__pycache__"; then
+    echo "❌ No hagas commit de __pycache__"
+    echo "   Ejecuta: git rm -r --cached backend/__pycache__/"
+    ERRORS=$((ERRORS + 1))
+fi
+
+if echo "$STAGED" | grep -q "node_modules/"; then
+    echo "❌ No hagas commit de node_modules"
+    echo "   Ejecuta: git rm -r --cached frontend/node_modules/"
+    ERRORS=$((ERRORS + 1))
+fi
+
+if echo "$STAGED" | grep -q "\.ipynb$"; then
+    echo "❌ No hagas commit de notebooks .ipynb"
+    echo "   Archivos afectados:"
+    echo "$STAGED" | grep "\.ipynb$" | sed 's/^/     /'
+    echo "   Ejecuta: git rm --cached <archivo>.ipynb"
+    echo "   Y añade *.ipynb a .gitignore"
+    ERRORS=$((ERRORS + 1))
+fi
+
+# ─────────────────────────────────────────────
+# 2. Sintaxis Python en archivos staged
+# ─────────────────────────────────────────────
+
+PY_FILES=$(echo "$STAGED" | grep "\.py$" || true)
+
+if [ -n "$PY_FILES" ]; then
+    PYTHON_CMD=$(command -v python3 || command -v python || echo "")
+
+    if [ -z "$PYTHON_CMD" ]; then
+        echo "⚠️  Python no encontrado, saltando verificación de sintaxis"
+    else
+        PY_ERRORS=0
+        while IFS= read -r f; do
+            [ -z "$f" ] && continue
+            [ ! -f "$f" ] && continue  # Puede ser un archivo eliminado
+
+            if ! "$PYTHON_CMD" -m py_compile "$f" 2>/dev/null; then
+                echo "❌ Error de sintaxis Python en: $f"
+                "$PYTHON_CMD" -m py_compile "$f" 2>&1 | sed 's/^/   /'
+                PY_ERRORS=$((PY_ERRORS + 1))
+            fi
+        done <<< "$PY_FILES"
+
+        if [ "$PY_ERRORS" -gt 0 ]; then
+            ERRORS=$((ERRORS + PY_ERRORS))
+        else
+            PY_COUNT=$(echo "$PY_FILES" | grep -c "\.py$" || echo "0")
+            echo "✅ Sintaxis Python OK ($PY_COUNT archivo/s)"
+        fi
+    fi
+fi
+
+# ─────────────────────────────────────────────
+# Resultado
+# ─────────────────────────────────────────────
+
+if [ "$ERRORS" -gt 0 ]; then
+    echo ""
+    echo "❌ Commit rechazado — $ERRORS error(es) encontrado(s)"
+    echo "   Corrige los errores o usa: git commit --no-verify"
+    exit 1
+fi
+
+echo "✅ Pre-commit OK — procediendo con el commit"
+exit 0

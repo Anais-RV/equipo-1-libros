@@ -1,0 +1,26 @@
+# docker-compose.ci.yml
+# Orquestación mínima para CI/CD y pruebas locales rápidas
+#
+# Uso:
+#   docker compose -f docker-compose.ci.yml up        # arrancar
+#   docker compose -f docker-compose.ci.yml down      # parar
+#   curl http://localhost:8000/health                 # verificar
+
+version: '3.8'
+
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile.ci
+    ports:
+      - "8000:8000"
+    environment:
+      - CI_MODE=true
+      - PYTHONUNBUFFERED=1
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+      start_period: 10s

@@ -1,0 +1,82 @@
+[
+  {
+    "title": "The Great Gatsby",
+    "author": "F. Scott Fitzgerald",
+    "avg_rating": 3.9,
+    "genres": ["Fiction", "Classics", "Literature"],
+    "emotions": {
+      "joy": 0.42,
+      "sadness": 0.71,
+      "fear": 0.23,
+      "surprise": 0.38,
+      "anger": 0.31,
+      "disgust": 0.17
+    },
+    "similarity_score": 0.95,
+    "description": "A story of decadence and excess in the Jazz Age."
+  },
+  {
+    "title": "To Kill a Mockingbird",
+    "author": "Harper Lee",
+    "avg_rating": 4.3,
+    "genres": ["Fiction", "Classics", "Historical Fiction"],
+    "emotions": {
+      "joy": 0.38,
+      "sadness": 0.65,
+      "fear": 0.44,
+      "surprise": 0.29,
+      "anger": 0.58,
+      "disgust": 0.41
+    },
+    "similarity_score": 0.91,
+    "description": "A landmark of American literature exploring racial injustice."
+  },
+  {
+    "title": "1984",
+    "author": "George Orwell",
+    "avg_rating": 4.2,
+    "genres": ["Fiction", "Science Fiction", "Dystopia", "Classics"],
+    "emotions": {
+      "joy": 0.12,
+      "sadness": 0.78,
+      "fear": 0.89,
+      "surprise": 0.31,
+      "anger": 0.74,
+      "disgust": 0.63
+    },
+    "similarity_score": 0.87,
+    "description": "A dystopian novel about totalitarianism and surveillance."
+  },
+  {
+    "title": "Pride and Prejudice",
+    "author": "Jane Austen",
+    "avg_rating": 4.3,
+    "genres": ["Fiction", "Classics", "Romance"],
+    "emotions": {
+      "joy": 0.79,
+      "sadness": 0.28,
+      "fear": 0.15,
+      "surprise": 0.51,
+      "anger": 0.33,
+      "disgust": 0.09
+    },
+    "similarity_score": 0.83,
+    "description": "A witty exploration of love, marriage and social class in Regency England."
+  },
+  {
+    "title": "The Alchemist",
+    "author": "Paulo Coelho",
+    "avg_rating": 3.9,
+    "genres": ["Fiction", "Fantasy", "Philosophy", "Adventure"],
+    "emotions": {
+      "joy": 0.82,
+      "sadness": 0.34,
+      "fear": 0.27,
+      "surprise": 0.66,
+      "anger": 0.11,
+      "disgust": 0.08
+    },
+    "similarity_score": 0.79,
+    "description": "A philosophical novel about following your personal legend."
+  }
+]
