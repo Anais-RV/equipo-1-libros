@@ -79,7 +79,7 @@ def load_book_reviews(query: str) -> tuple[pd.DataFrame, str]:
     Carga las reviews de un libro buscando por título o autor.
     Devuelve (reviews_df, nombre_encontrado).
     """
-    df = pd.read_csv(f"{DATA_PATH}/Book_Details.csv")
+    df = pd.read_csv(f"{DATA_PATH}/books_clean.csv")
     df_reviews = pd.read_csv(f"{DATA_PATH}/reviews_clean.csv")
 
     # Fuzzy search sobre el catálogo
