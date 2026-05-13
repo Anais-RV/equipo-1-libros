@@ -51,9 +51,9 @@ ARCHIVE_PATH = os.path.join(BASE_DIR, "../../archive")
 BOOKS_CSV = os.path.join(DATA_PATH, "Book_Details.csv")
 REVIEWS_DB = os.path.join(ARCHIVE_PATH, "book_reviews.db")
 
-OUTPUT_DIR = os.path.join(DATA_PATH, "processed")
+OUTPUT_DIR = DATA_PATH
 
-os.makedirs(OUTPUT_DIR, exist_ok=True)
+
 
 # ============================================================
 # HELPERS
