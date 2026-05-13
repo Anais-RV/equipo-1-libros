@@ -10,7 +10,6 @@
 pandas==2.2.3
 numpy==2.2.5
 scipy==1.15.2
-deep-translator==1.11.4
 langdetect==1.0.9
 
 # Backend API
@@ -29,6 +28,7 @@ scikit-learn==1.6.1
 transformers==4.51.3
 torch==2.7.0
 textblob==0.19.0
+rapidfuzz>=3.10.0
 
 # Web Framework (Dashboard)
 streamlit==1.45.0
