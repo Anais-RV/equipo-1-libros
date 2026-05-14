@@ -1,39 +1,8 @@
-"""
-🦄 Sentiment Analyzer - El corazón del análisis
-
-Aquí es donde pasa la magia (y el marron). BERT te va a analizar
-63K reviews buscando 6 emociones.
-
-ADVERTENCIA: BERT es lento. Muy lento. Como una tortuga en invierno.
-- 1 review = 1-2 segundos
-- 200 reviews = 3-6 minutos
-- No hagas esto on-demand o los usuarios se harán viejos esperando
-
-SOLUCIÓN: Cachear. Ver cache_manager.py.
-
-Emociones que detecta BERT:
-- joy (alegría)
-- sadness (tristeza)
-- fear (miedo)
-- surprise (sorpresa)
-- anger (ira)
-- disgust (repulsión)
-
-Retorna un dict como este:
-{
-    "joy": 0.75,
-    "sadness": 0.2,
-    "fear": 0.1,
-    "surprise": 0.65,
-    "anger": 0.05,
-    "disgust": 0.08,
-    "average_sentiment": 0.64
-}
-"""
-
 import pandas as pd
 from typing import Dict
 import os
+from transformers import pipeline  # ← SIEMPRE AL PRINCIPIO
+from rapidfuzz import process, fuzz
 
 # ============================================
 # CONFIGURACIÓN
@@ -42,163 +11,184 @@ import os
 DATA_PATH = os.path.join(os.path.dirname(__file__), '../../data')
 EMOTIONS = ['joy', 'sadness', 'fear', 'surprise', 'anger', 'disgust']
 
+# Umbral mínimo de similitud para fuzzy matching (0-100)
+FUZZY_THRESHOLD = 70
+
+# Cargamos el modelo UNA SOLA VEZ al importar el archivo
+print("Cargando modelo BERT... (solo la primera vez)")
+emotion_classifier = pipeline(
+    "text-classification",
+    model="j-hartmann/emotion-english-distilroberta-base",
+    top_k=None
+)
+print("✅ Modelo cargado")
+
+
+# ============================================
+# FUZZY SEARCH
+# ============================================
+
+def fuzzy_find_book(query: str, df: pd.DataFrame) -> pd.DataFrame:
+    """
+    Busca un libro por título o por autor usando fuzzy matching
+    (tolerante a errores tipográficos y sin distinción de mayúsculas).
+
+    Devuelve las filas del DataFrame que coincidan.
+    """
+    query = query.strip()
+
+    # --- 1. Búsqueda por título ---
+    titles = df['book_title'].dropna().unique().tolist()
+    best_title = process.extractOne(
+        query,
+        titles,
+        scorer=fuzz.token_sort_ratio,   # robusto ante palabras reordenadas
+        score_cutoff=FUZZY_THRESHOLD
+    )
+
+    if best_title:
+        matched_title, score, _ = best_title
+        print(f"📖 Título encontrado: '{matched_title}' (similitud: {score}%)")
+        return df[df['book_title'].str.lower() == matched_title.lower()]
+
+    # --- 2. Búsqueda por autor (si no encontró título) ---
+    if 'author' in df.columns:
+        authors = df['author'].dropna().unique().tolist()
+        best_author = process.extractOne(
+            query,
+            authors,
+            scorer=fuzz.token_sort_ratio,
+            score_cutoff=FUZZY_THRESHOLD
+        )
+
+        if best_author:
+            matched_author, score, _ = best_author
+            print(f"✍️  Autor encontrado: '{matched_author}' (similitud: {score}%)")
+            return df[df['author'].str.lower() == matched_author.lower()]
+
+    # --- 3. Sin coincidencias ---
+    return pd.DataFrame()
+
+
 # ============================================
 # FUNCIONES HELPER
 # ============================================
 
-def load_book_reviews(book_title: str) -> pd.DataFrame:
+def load_book_reviews(query: str) -> tuple[pd.DataFrame, str]:
     """
-    Carga las reviews de un libro específico del dataset.
-
-    Args:
-        book_title: Título del libro a buscar
-
-    Returns:
-        DataFrame con reviews del libro
-
-    Nota:
-        Los estudiantes pueden mejorar:
-        - Búsqueda fuzzy (por si el título no es exacto)
-        - Case-insensitive search
-        - Búsqueda por autor también
+    Carga las reviews de un libro buscando por título o autor.
+    Devuelve (reviews_df, nombre_encontrado).
     """
-    # TODO: Implementar carga del dataset
-    # Sugerencia: Usar pandas.read_csv() o sqlite3
-    # df = pd.read_csv(f"{DATA_PATH}/Book_Details.csv")
-    # book_reviews = df[df['title'].str.lower() == book_title.lower()]
-    pass
+    df = pd.read_csv(f"{DATA_PATH}/books_clean.csv")
+    df_reviews = pd.read_csv(f"{DATA_PATH}/reviews_clean.csv")
+
+    # Fuzzy search sobre el catálogo
+    book_match = fuzzy_find_book(query, df)
+
+    if book_match.empty:
+        # Sugerimos las 3 opciones más parecidas para ayudar al usuario
+        titles = df['book_title'].dropna().unique().tolist()
+        suggestions = process.extract(
+            query,
+            titles,
+            scorer=fuzz.token_sort_ratio,
+            limit=3
+        )
+        hint = ", ".join(f"'{s[0]}'" for s in suggestions)
+        raise ValueError(
+            f"No se encontró '{query}' en el catálogo.\n"
+            f"   ¿Quisiste decir? → {hint}"
+        )
+
+    # Nombre canónico para los mensajes
+    found_name = book_match['book_title'].iloc[0]
+
+    # Cruzar con reviews
+    book_ids = book_match['book_id'].tolist()
+    book_reviews = df_reviews[df_reviews['book_id'].isin(book_ids)]
+
+    if len(book_reviews) == 0:
+        raise ValueError(f"Se encontró '{found_name}' pero no tiene reviews disponibles.")
+
+    print(f"✅ Encontradas {len(book_reviews)} reviews para '{found_name}'")
+    return book_reviews, found_name
 
 
 def apply_bert_to_reviews(reviews: pd.Series) -> pd.DataFrame:
-    """
-    Aplica modelo BERT pre-entrenado para detectar emociones en cada review.
+    results = []
 
-    Args:
-        reviews: Series de textos (reviews)
-
-    Returns:
-        DataFrame con scores de 6 emociones para cada review
-
-    Nota:
-        Los estudiantes deben:
-        - Cargar modelo BERT (transformers library)
-        - Hacer inference en cada review (puede ser lento!)
-        - Retornar dataframe con columnas: joy, sadness, fear, surprise, anger, disgust
-        - Considerar batching para optimizar
-
-    Ejemplo esperado:
-        review_text                          joy  sadness  fear  ...
-        "This book changed my life!"        0.9   0.1    0.0
-        "I couldn't finish it"              0.2   0.8    0.3
-    """
-    # TODO: Implementar BERT inference
-    # Sugerencia: from transformers import pipeline
-    # classifier = pipeline("zero-shot-classification")
-    # Para cada review, clasificar en las 6 emociones
-    pass
+    for review in reviews:
+        
+        output = emotion_classifier(
+            review,
+            truncation = True,
+            max_length = 512)   # BERT tiene límite de tokens
+        row = {item['label']: item['score'] for item in output[0]}
+        results.append(row)
+        
+     
+    return pd.DataFrame(results).fillna(0.0)
 
 
 def aggregate_emotion_scores(emotion_df: pd.DataFrame) -> Dict[str, float]:
     """
     Agrega los scores de emociones de todas las reviews en un perfil único.
-
-    Args:
-        emotion_df: DataFrame con scores de emociones por review
-
-    Returns:
-        Dict con promedio de cada emoción
-
-    Ejemplo:
-        {
-            "joy": 0.75,
-            "sadness": 0.25,
-            ...
-            "average_sentiment": 0.65
-        }
-
-    Nota:
-        Los estudiantes pueden mejorar:
-        - Weighted average (dar más peso a reviews con más votos)
-        - Mediana en lugar de media (más robusta a outliers)
-        - Standard deviation (qué tan consistentes son los sentimientos)
     """
-    # TODO: Implementar agregación
-    # Sugerencia: emotion_df.mean()
-    pass
+    profile = {}
+
+    for emotion in EMOTIONS:
+        if emotion in emotion_df.columns:
+            profile[emotion] = round(float(emotion_df[emotion].mean()), 4)
+        else:
+            profile[emotion] = 0.0
+
+    # El modelo j-hartmann también devuelve 'neutral', la incluimos si existe
+    if 'neutral' in emotion_df.columns:
+        profile['neutral'] = round(float(emotion_df['neutral'].mean()), 4)
+
+    # Sentiment general: media entre joy y surprise (emociones positivas)
+    joy      = emotion_df.get('joy',      pd.Series([0])).mean()
+    surprise = emotion_df.get('surprise', pd.Series([0])).mean()
+    profile['average_sentiment'] = round(float((joy + surprise) / 2), 4)
+
+    return profile
 
 
 # ============================================
 # FUNCIÓN PRINCIPAL
 # ============================================
 
-def analyze_sentiment(book_title: str) -> Dict[str, float]:
+def analyze_sentiment(query: str, test_mode: bool = False) -> Dict[str, float]:
     """
     Analiza qué emociones genera un libro.
-
-    Flujo:
-    1. Buscar las reviews del libro (pueden ser 10 o 200, depende)
-    2. Pasar cada una por BERT (LENTO)
-    3. Promediar los 6 scores emocionales
-    4. Retornar perfil único del libro
-
-    Args:
-        book_title: Título exacto del libro
-
-    Returns:
-        Dict con 6 emociones + promedio. Ejemplo:
-        {
-            "joy": 0.75,
-            "sadness": 0.2,
-            "fear": 0.1,
-            "surprise": 0.65,
-            "anger": 0.05,
-            "disgust": 0.08,
-            "average_sentiment": 0.64
-        }
-
-    Raises:
-        ValueError: "The Midnight Library" no existe o tiene <10 reviews
-        Exception: BERT explota (GPU sin memoria, model no cargado, etc.)
-
-    ⚠️ ADVERTENCIAS:
-    - BERT tarda 1-2 segundos POR REVIEW
-    - 200 reviews = 3-6 MINUTOS (sin caché)
-    - Así que: CACHEA TODO con cache_manager.py
-    - Si no cacheas, tu demo tardará 10 minutos en cargar
-
-    💡 CONSEJOS:
-    1. Primero: load_dataset() → entiende qué columnas tienes
-    2. Prueba con 5 reviews solo, no hagas 200 de golpe
-    3. print() es tu amigo. Verás dónde se cuelga
-    4. Try/except para reviews que rompen BERT
-    5. Si BERT falla en medio, cachea lo que tengas + continúa
-
-    🧠 TIPS TÉCNICOS:
-    - Usa transformers.pipeline("zero-shot-classification")
-    - Batch 5-10 reviews a la vez (más rápido que una por una)
-    - Considera quantization o quantized models si tienes tiempo
-    - GPU es 10x más rápido que CPU (si tienes)
+    Acepta el título con errores tipográficos o el nombre del autor.
     """
-    # TODO: USTEDES IMPLEMENTAN ESTO
-    print(f"[TODO] Analizando sentimientos de '{book_title}'")
+    print(f"\n📚 Buscando: '{query}'")
 
-    # Estructura esperada:
-    # 1. reviews = load_book_reviews(book_title)
-    # 2. if len(reviews) < 10: raise ValueError("Not enough reviews")
-    # 3. emotion_scores = apply_bert_to_reviews(reviews['text'])
-    # 4. profile = aggregate_emotion_scores(emotion_scores)
-    # 5. return profile
+    # 1. Cargar reviews (con fuzzy search incluido)
+    reviews, found_name = load_book_reviews(query)
 
-    # PLACEHOLDER - Reemplazar con código real
-    return {
-        "joy": 0.75,
-        "sadness": 0.2,
-        "fear": 0.1,
-        "surprise": 0.65,
-        "anger": 0.05,
-        "disgust": 0.08,
-        "average_sentiment": 0.64
-    }
+    if len(reviews) < 3:
+        raise ValueError(f"'{found_name}' tiene menos de 3 reviews, perfil poco fiable")
+
+    # 2. Modo test: solo procesa 10 reviews para verificar que funciona
+    if test_mode:
+        reviews = reviews.head(10)
+        print(f"⚠️  MODO TEST: procesando solo {len(reviews)} reviews")
+
+    # 3. Aplicar BERT
+    print(f"🤖 Aplicando BERT a {len(reviews)} reviews...")
+    emotion_scores = apply_bert_to_reviews(reviews['review_content'])
+
+    # 4. Agregar en perfil único
+    profile = aggregate_emotion_scores(emotion_scores)
+
+    print(f"\n✅ Perfil emocional de '{found_name}':")
+    for emotion, score in profile.items():
+        barra = "█" * int(score * 20)
+        print(f"   {emotion:<20} {barra} ({score:.2f})")
+
+    return profile
 
 
 # ============================================
@@ -206,13 +196,7 @@ def analyze_sentiment(book_title: str) -> Dict[str, float]:
 # ============================================
 
 if __name__ == "__main__":
-    # Test local
-    result = analyze_sentiment("The Midnight Library")
-    print("Perfil emocional:", result)
-
-    # Deberías ver algo como:
-    # {
-    #     "joy": 0.75,
-    #     "sadness": 0.25,
-    #     ...
-    # }
+    # Pruebas con errores tipográficos intencionales
+    result = analyze_sentiment("Zodiak", test_mode=True)  # sin guion
+    result = analyze_sentiment("Heydi", test_mode=True)                     # typo
+    result = analyze_sentiment("Jack Canfield", test_mode=True)                             # por autor
