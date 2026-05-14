@@ -2,7 +2,8 @@
   "name": "equipo-1-libros-backend",
   "dockerComposeFile": "../docker-compose.yml",
   "service": "backend",
-  "workspaceFolder": "/app",
+  "workspaceMount": "source=${localWorkspaceFolder},target=/workspaces/${localWorkspaceFolderBasename},type=bind,consistency=cached",
+  "workspaceFolder": "/workspaces/${localWorkspaceFolderBasename}",
   "runServices": [
     "backend",
     "frontend"
@@ -14,8 +15,8 @@
       "settings": {
         "python.defaultInterpreterPath": "/usr/local/bin/python",
         "python.analysis.extraPaths": [
-          "/app/backend",
-          "/app"
+          "/workspaces/${localWorkspaceFolderBasename}/backend",
+          "/app/backend"
         ]
       },
       "extensions": [
