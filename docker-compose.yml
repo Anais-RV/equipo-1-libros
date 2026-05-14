@@ -10,9 +10,7 @@ services:
     environment:
       - PYTHONUNBUFFERED=1
     volumes:
-      - ./backend:/app/backend
-      - ./data:/app/data
-      - ./archive:/app/archive
+      - ./:/app
     working_dir: /app/backend
     command: uvicorn main:app --host 0.0.0.0 --port 8000 --reload
 
