@@ -6,8 +6,6 @@
 #   docker compose -f docker-compose.ci.yml down      # parar
 #   curl http://localhost:8000/health                 # verificar
 
-version: '3.8'
-
 services:
   backend:
     build:
