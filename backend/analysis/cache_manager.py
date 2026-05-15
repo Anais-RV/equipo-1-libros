@@ -189,13 +189,18 @@ class CacheManager:
 
         # Contar sentimientos cacheados
         if os.path.exists(self.sentiment_file):
-            try:
-                with open(self.sentiment_file, 'r') as f:
-                    profiles = json.load(f)
-                    stats["cached_books"] = len(profiles)
-                    stats["last_updated"] = profiles.get("_timestamp")
-            except:
-                pass
+    try:
+        with open(self.sentiment_file, 'r') as f:
+            profiles = json.load(f)
+            stats["cached_books"] = len(profiles)
+            # solución al bug _timestand
+            timestamps = [
+                v["_timestamp"] for v in profiles.values()
+                if isinstance(v, dict) and "_timestamp" in v
+            ]
+            stats["last_updated"] = max(timestamps) if timestamps else None
+    except:
+        pass
 
         # Tamaño total
         for filename in [self.sentiment_file, self.emotion_profiles_file]:
