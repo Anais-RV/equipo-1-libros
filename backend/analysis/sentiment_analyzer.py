@@ -3,6 +3,9 @@ from typing import Dict
 import os
 from transformers import pipeline  # ← SIEMPRE AL PRINCIPIO
 from rapidfuzz import process, fuzz
+from cache_manager import CacheManager # Importar busquedas a cache
+
+cache = CacheManager()
 
 # ============================================
 # CONFIGURACIÓN
@@ -168,13 +171,18 @@ def analyze_sentiment(query: str, test_mode: bool = False) -> Dict[str, float]:
     # 1. Cargar reviews (con fuzzy search incluido)
     reviews, found_name = load_book_reviews(query)
 
+    cached = cache.get_sentiment_profile(found_name) # Añadimos la llamada a la funcion donde se va a guardar el cache
+    if cached:
+        print(f"📦 Resultado del caché, no hace falta BERT")
+        return cached 
+
     if len(reviews) < 3:
         raise ValueError(f"'{found_name}' tiene menos de 3 reviews, perfil poco fiable")
 
-    # 2. Modo test: solo procesa 10 reviews para verificar que funciona
+    """# 2. Modo test: solo procesa 10 reviews para verificar que funciona
     if test_mode:
         reviews = reviews.head(10)
-        print(f"⚠️  MODO TEST: procesando solo {len(reviews)} reviews")
+        print(f"⚠️  MODO TEST: procesando solo {len(reviews)} reviews")"""
 
     # 3. Aplicar BERT
     print(f"🤖 Aplicando BERT a {len(reviews)} reviews...")
@@ -188,6 +196,8 @@ def analyze_sentiment(query: str, test_mode: bool = False) -> Dict[str, float]:
         barra = "█" * int(score * 20)
         print(f"   {emotion:<20} {barra} ({score:.2f})")
 
+    cache.save_sentiment_profile(found_name, profile) # Guardar cache
+
     return profile
 
 
@@ -197,6 +207,6 @@ def analyze_sentiment(query: str, test_mode: bool = False) -> Dict[str, float]:
 
 if __name__ == "__main__":
     # Pruebas con errores tipográficos intencionales
-    result = analyze_sentiment("Zodiak", test_mode=True)  # sin guion
-    result = analyze_sentiment("Heydi", test_mode=True)                     # typo
-    result = analyze_sentiment("Jack Canfield", test_mode=True)                             # por autor
+    result = analyze_sentiment("The winner")  # sin guion
+    result = analyze_sentiment("Carry On")                     # typo
+    result = analyze_sentiment("Jane Austen")                             # por autor
