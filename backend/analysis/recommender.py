@@ -26,6 +26,7 @@ SOLUCIÓN:
 El frontend hace: "Busco X" → API carga caché en <100ms → retorna TOP 5
 """
 
+
 import pandas as pd
 import numpy as np
 from typing import List, Dict
